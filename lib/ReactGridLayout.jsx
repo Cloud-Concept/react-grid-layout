@@ -311,19 +311,18 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       modifiedItem.w = standardWidth;
     } else if (xRatio > 0.60) {
       // Right section
-      modifiedItem.x = cols - standardWidth;
+      modifiedItem.x =  cols - standardWidth;
       modifiedItem.w = standardWidth;
     } else {
-      // Middle section
-      modifiedItem.x = 0;
+      modifiedItem.x =  0;
       modifiedItem.w = cols;
     }
 
     const placeholder = {
-      w: modifiedItem.w,
-      h: modifiedItem.h,
-      x: modifiedItem.x,
-      y: modifiedItem.y,
+      w: modifiedItem.w ?? l.w,
+      h: l.h,
+      x: modifiedItem.x ?? l.x,
+      y: l.y,
       placeholder: true,
       i: i
     };
@@ -333,8 +332,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     // Use the modified item for movement
     layout = moveElement(
       layout,
-      modifiedItem,
-      modifiedItem.x, // Use the already calculated x position
+      l,
+      l.x,
       y,
       isUserAction,
       preventCollision,
