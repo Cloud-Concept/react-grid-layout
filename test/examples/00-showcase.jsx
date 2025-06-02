@@ -28,12 +28,12 @@ export default class ShowcaseLayout extends React.Component<Props, State> {
     className: "layout",
     rowHeight: 30,
     onLayoutChange: function() {},
-    cols: { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 },
+    cols: { lg: 2, md: 2, sm: 2, xs: 2, xxs: 2 },
   };
 
   state: State = {
     currentBreakpoint: "lg",
-    compactType: "vertical",
+    compactType: "inline",
     resizeHandles: ['se'],
     mounted: false,
     layouts: { lg: generateLayout(['se']) }
@@ -75,7 +75,9 @@ export default class ShowcaseLayout extends React.Component<Props, State> {
         ? "vertical"
         : oldCompactType === "vertical"
         ? null
-        : "horizontal";
+        : oldCompactType === "inline"
+    ? "horizontal":
+    "inline";
     this.setState({ compactType });
   };
 
@@ -140,15 +142,15 @@ export default class ShowcaseLayout extends React.Component<Props, State> {
 }
 
 function generateLayout(resizeHandles) {
-  return _.map(_.range(0, 25), function(item, i) {
-    var y = Math.ceil(Math.random() * 4) + 1;
+  return _.map(_.range(0, 8), function(item, i) {
+    var y = Math.ceil(Math.random() * 4);
     return {
       x: Math.round(Math.random() * 5) * 2,
       y: Math.floor(i / 6) * y,
-      w: 2,
+      w: 1,
       h: y,
       i: i.toString(),
-      static: Math.random() < 0.05,
+      // static: Math.random() < 0,
       resizeHandles
     };
   });
