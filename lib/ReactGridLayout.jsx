@@ -291,22 +291,50 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const l = getLayoutItem(layout, i);
     if (!l) return;
 
-    // Create placeholder (display only)
+    // Get the current mouse position relative to the grid
+    // The actual x parameter can be unreliable, so get mouse position from the event
+    const rect = node.parentElement.getBoundingClientRect();
+    const gridX = e.clientX - rect.left;
+
+    const gridWidth = rect.width;
+    const xRatio = gridX / gridWidth; // Position as a ratio of total width (0-1)
+
+    const standardWidth = Math.max(Math.floor(cols / 3), 1);
+
+    // Create a clone of the item we're dragging
+    // if we modify the original item, it will cause issues with the layout
+    const modifiedItem = cloneLayoutItem(l);
+
+    if (xRatio < 0.40) {
+      // Left section
+      modifiedItem.x = 0;
+      modifiedItem.w = standardWidth;
+    } else if (xRatio > 0.60) {
+      // Right section
+      modifiedItem.x = cols - standardWidth;
+      modifiedItem.w = standardWidth;
+    } else {
+      // Middle section
+      modifiedItem.x = 0;
+      modifiedItem.w = cols;
+    }
+
     const placeholder = {
-      w: l.w,
-      h: l.h,
-      x: l.x,
-      y: l.y,
+      w: modifiedItem.w,
+      h: modifiedItem.h,
+      x: modifiedItem.x,
+      y: modifiedItem.y,
       placeholder: true,
       i: i
     };
 
     // Move the element to the dragged location.
     const isUserAction = true;
+    // Use the modified item for movement
     layout = moveElement(
       layout,
-      l,
-      x,
+      modifiedItem,
+      modifiedItem.x, // Use the already calculated x position
       y,
       isUserAction,
       preventCollision,
@@ -315,8 +343,9 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       allowOverlap
     );
 
-    this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
+    this.props.onDrag(layout, oldDragItem, modifiedItem, placeholder, e, node);
 
+    // Update both the layout and the placeholder
     this.setState({
       layout: allowOverlap
         ? layout
@@ -347,12 +376,61 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const l = getLayoutItem(layout, i);
     if (!l) return;
 
-    // Move the element here
+    // Get the current mouse position relative to the grid
+    // The actual x parameter is unreliable (often 0), so we need to get mouse position from the event
+    console.log("Original x:", x);
+
+    // Get the client's bounding rectangle to find the mouse position relative to the grid
+    const rect = node.parentElement.getBoundingClientRect();
+    const gridX = e.clientX - rect.left;
+
+    // Convert pixel position to grid units
+    const gridWidth = rect.width;
+    const colWidth = gridWidth / cols;
+    // Using Math.floor instead of Math.round to get accurate column positioning
+    // Also, using the raw position without rounding to better determine the section
+    const xInCols =  gridX / gridWidth;
+    const xRatio = gridX / gridWidth; // Position as a ratio of total width (0-1)
+
+    console.log("Mouse position:", {
+      clientX: e.clientX,
+      gridX,
+      gridWidth,
+      colWidth,
+      xInCols,
+      xRatio,
+      cols
+    });
+
+    const standardWidth = Math.max(Math.floor(cols / 3), 1);
+
+    console.log("Thresholds:", {
+      standardWidth,
+      xInCols,
+      sampleX: cols - standardWidth
+    });
+
+    if (xInCols < 0.33) {
+      l.w = standardWidth;
+      l.x = 0;
+      console.log("Left section");
+    } else if (xInCols > 0.66) {
+      // Right section
+      l.w = standardWidth;
+      l.x = cols - standardWidth;
+      console.log("Right section");
+    } else {
+      // Middle section
+      l.w = cols;
+      l.x = 0;
+    }
+
+    // Move the element to the final position
     const isUserAction = true;
     layout = moveElement(
       layout,
       l,
-      x,
+      l.x, // Use our precalculated x position
       y,
       isUserAction,
       preventCollision,
@@ -361,22 +439,38 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       allowOverlap
     );
 
-    // Set state
-    const newLayout = allowOverlap
-      ? layout
-      : compact(layout, compactType(this.props), cols);
+    // Create placeholder with the same dimensions and position as the modified layout item
+    const placeholder = {
+      w: l.w,
+      h: l.h,
+      x: l.x,
+      y: l.y,
+      placeholder: true,
+      i: l.i
+    };
 
-    this.props.onDragStop(newLayout, oldDragItem, l, null, e, node);
-
-    const { oldLayout } = this.state;
+    // Set state with updated placeholder before final cleanup
     this.setState({
-      activeDrag: null,
-      layout: newLayout,
-      oldDragItem: null,
-      oldLayout: null
-    });
+      activeDrag: placeholder
+    }, () => {
+      // After the placeholder is rendered with the correct position and size,
+      // complete the drag operation with the final state update
+      const newLayout = allowOverlap
+        ? layout
+        : compact(layout, compactType(this.props), cols);
 
-    this.onLayoutMaybeChanged(newLayout, oldLayout);
+      this.props.onDragStop(newLayout, oldDragItem, l, placeholder, e, node);
+
+      const { oldLayout } = this.state;
+      this.setState({
+        activeDrag: null,
+        layout: newLayout,
+        oldDragItem: null,
+        oldLayout: null
+      });
+
+      this.onLayoutMaybeChanged(newLayout, oldLayout);
+    });
   };
 
   onLayoutMaybeChanged(newLayout: Layout, oldLayout: ?Layout) {
