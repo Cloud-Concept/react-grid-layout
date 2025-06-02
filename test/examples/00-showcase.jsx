@@ -148,7 +148,8 @@ function generateLayout(resizeHandles) {
       x: Math.round(Math.random() * 5) * 2,
       y: Math.floor(i / 6) * y,
       w: 1,
-      h: y,
+      h: i % 2 ? 1 : 2,
+      originalH: i % 2 ? 1 : 2,
       i: i.toString(),
       // static: Math.random() < 0,
       resizeHandles
