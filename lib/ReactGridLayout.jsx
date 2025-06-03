@@ -409,11 +409,11 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       sampleX: cols - standardWidth
     });
 
-    if (xInCols < 0.33) {
+    if (xInCols < 0.40) {
       l.w = standardWidth;
       l.x = 0;
       console.log("Left section");
-    } else if (xInCols > 0.66) {
+    } else if (xInCols > 0.60) {
       // Right section
       l.w = standardWidth;
       l.x = cols - standardWidth;
