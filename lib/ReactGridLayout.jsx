@@ -303,7 +303,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // Create a clone of the item we're dragging
     // if we modify the original item, it will cause issues with the layout
-    const modifiedItem = cloneLayoutItem(l);
+    // const modifiedItem = cloneLayoutItem(l);
+    const modifiedItem = l;
 
     if (xRatio < 0.40) {
       // Left section
@@ -318,6 +319,11 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       modifiedItem.w = cols;
     }
 
+
+    if(modifiedItem.minW>modifiedItem.w){
+      modifiedItem.w = modifiedItem.minW;
+      modifiedItem.x = 0;
+    }
     const placeholder = {
       w: modifiedItem.w ?? l.w,
       h: l.h,
@@ -333,7 +339,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     layout = moveElement(
       layout,
       l,
-      l.x,
+      x,
       y,
       isUserAction,
       preventCollision,
@@ -421,6 +427,10 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     } else {
       // Middle section
       l.w = cols;
+      l.x = 0;
+    }
+    if(l.w < l.minW) {
+      l.w = l.minW;
       l.x = 0;
     }
 
