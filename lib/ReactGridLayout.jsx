@@ -57,6 +57,7 @@ type State = {
 };
 
 import type { Props, DefaultProps } from "./ReactGridLayoutPropTypes";
+import { log } from "./utils";
 
 // End Types
 
@@ -383,7 +384,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // Get the current mouse position relative to the grid
     // The actual x parameter is unreliable (often 0), so we need to get mouse position from the event
-    console.log("Original x:", x);
+    log("Original x:", x);
 
     // Get the client's bounding rectangle to find the mouse position relative to the grid
     const rect = node.parentElement.getBoundingClientRect();
@@ -397,7 +398,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const xInCols =  gridX / gridWidth;
     const xRatio = gridX / gridWidth; // Position as a ratio of total width (0-1)
 
-    console.log("Mouse position:", {
+    log("Mouse position:", {
       clientX: e.clientX,
       gridX,
       gridWidth,
@@ -409,7 +410,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     const standardWidth = Math.max(Math.floor(cols / 3), 1);
 
-    console.log("Thresholds:", {
+    log("Thresholds:", {
       standardWidth,
       xInCols,
       sampleX: cols - standardWidth
@@ -418,12 +419,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     if (xInCols < 0.40) {
       l.w = standardWidth;
       l.x = 0;
-      console.log("Left section");
+      log("Left section");
     } else if (xInCols > 0.60) {
       // Right section
       l.w = standardWidth;
       l.x = cols - standardWidth;
-      console.log("Right section");
+      log("Right section");
     } else {
       // Middle section
       l.w = cols;
