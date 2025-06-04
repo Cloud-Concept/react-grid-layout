@@ -263,6 +263,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       i: i
     };
 
+    // Store the initial mouse position for threshold detection
+    this.initialMousePosition = {
+      x: e.clientX,
+      y: e.clientY
+    };
+
     this.setState({
       oldDragItem: cloneLayoutItem(l),
       oldLayout: layout,
@@ -291,6 +297,21 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const { cols, allowOverlap, preventCollision } = this.props;
     const l = getLayoutItem(layout, i);
     if (!l) return;
+
+    // Only drag if the drag distance meets the threshold
+    if (this.initialMousePosition) {
+      const threshold = 5; // 5 pixels threshold
+      const dragDistance = Math.sqrt(
+        Math.pow(e.clientX - this.initialMousePosition.x, 2) +
+        Math.pow(e.clientY - this.initialMousePosition.y, 2)
+      );
+
+      log("Drag distance:", dragDistance);
+
+      if (dragDistance < threshold) {
+        return; // Skip the drag operation if below threshold
+      }
+    }
 
     // Get the current mouse position relative to the grid
     // The actual x parameter can be unreliable, so get mouse position from the event
@@ -381,6 +402,27 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const { cols, preventCollision, allowOverlap } = this.props;
     const l = getLayoutItem(layout, i);
     if (!l) return;
+
+    // Only drag if the drag distance meets the threshold
+    if (this.initialMousePosition) {
+      const threshold = 5; // 5 pixels threshold
+      const dragDistance = Math.sqrt(
+        Math.pow(e.clientX - this.initialMousePosition.x, 2) +
+        Math.pow(e.clientY - this.initialMousePosition.y, 2)
+      );
+
+      log("Drag distance:", dragDistance);
+
+      if (dragDistance < threshold) {
+        this.setState({
+          activeDrag: null,
+          layout: layout,
+          oldDragItem: null,
+          oldLayout: null
+        });
+        return; // Skip the drag operation if below threshold
+      }
+    }
 
     // Get the current mouse position relative to the grid
     // The actual x parameter is unreliable (often 0), so we need to get mouse position from the event
