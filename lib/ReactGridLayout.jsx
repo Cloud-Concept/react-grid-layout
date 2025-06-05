@@ -58,6 +58,7 @@ type State = {
 
 import type { Props, DefaultProps } from "./ReactGridLayoutPropTypes";
 import { log } from "./utils";
+import { find } from "lodash";
 
 // End Types
 
@@ -263,11 +264,15 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       i: i
     };
 
-    // Store the initial mouse position for threshold detection
-    this.initialMousePosition = {
-      x: e.clientX,
-      y: e.clientY
-    };
+    log("onDragStart  ======>  ", layout, l);
+
+    if (getLayoutItem(layout, String(l.i))) {
+      // Store the initial mouse position for threshold detection
+      this.initialMousePosition = {
+        x: e.clientX,
+        y: e.clientY
+      };
+    }
 
     this.setState({
       oldDragItem: cloneLayoutItem(l),
@@ -298,12 +303,14 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     const l = getLayoutItem(layout, i);
     if (!l) return;
 
+    log("onDrag  ======>  ", layout, l);
+
     // Only drag if the drag distance meets the threshold
     if (this.initialMousePosition) {
       const threshold = 5; // 5 pixels threshold
       const dragDistance = Math.sqrt(
         Math.pow(e.clientX - this.initialMousePosition.x, 2) +
-        Math.pow(e.clientY - this.initialMousePosition.y, 2)
+          Math.pow(e.clientY - this.initialMousePosition.y, 2)
       );
 
       log("Drag distance:", dragDistance);
@@ -323,37 +330,33 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     const standardWidth = Math.max(Math.floor(cols / 3), 1);
 
-    // Create a clone of the item we're dragging
-    // if we modify the original item, it will cause issues with the layout
-    // const modifiedItem = cloneLayoutItem(l);
-    const modifiedItem = l;
-
-    if (xRatio < 0.40) {
+    if (xRatio < 0.4) {
       // Left section
-      modifiedItem.x = 0;
-      modifiedItem.w = standardWidth;
-    } else if (xRatio > 0.60) {
+      l.w = standardWidth;
+    } else if (xRatio > 0.6) {
       // Right section
-      modifiedItem.x =  cols - standardWidth;
-      modifiedItem.w = standardWidth;
+      l.x = cols - standardWidth;
+      l.w = standardWidth;
     } else {
-      modifiedItem.x =  0;
-      modifiedItem.w = cols;
+      l.x = 0;
+      l.w = cols;
     }
 
-
-    if(modifiedItem.minW>modifiedItem.w){
-      modifiedItem.w = modifiedItem.minW;
-      modifiedItem.x = 0;
+    if (l.minW > l.w) {
+      l.w = l.minW;
+      l.x = 0;
     }
+
     const placeholder = {
-      w: modifiedItem.w ?? l.w,
+      w: l.w,
       h: l.h,
-      x: modifiedItem.x ?? l.x,
+      x: l.x,
       y: l.y,
       placeholder: true,
       i: i
     };
+
+    log("onDrag  placeholder ======>  ", placeholder);
 
     // Move the element to the dragged location.
     const isUserAction = true;
@@ -370,7 +373,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       allowOverlap
     );
 
-    this.props.onDrag(layout, oldDragItem, modifiedItem, placeholder, e, node);
+    this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
 
     // Update both the layout and the placeholder
     this.setState({
@@ -408,7 +411,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       const threshold = 5; // 5 pixels threshold
       const dragDistance = Math.sqrt(
         Math.pow(e.clientX - this.initialMousePosition.x, 2) +
-        Math.pow(e.clientY - this.initialMousePosition.y, 2)
+          Math.pow(e.clientY - this.initialMousePosition.y, 2)
       );
 
       log("Drag distance:", dragDistance);
@@ -434,18 +437,12 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     // Convert pixel position to grid units
     const gridWidth = rect.width;
-    const colWidth = gridWidth / cols;
-    // Using Math.floor instead of Math.round to get accurate column positioning
-    // Also, using the raw position without rounding to better determine the section
-    const xInCols =  gridX / gridWidth;
     const xRatio = gridX / gridWidth; // Position as a ratio of total width (0-1)
 
     log("Mouse position:", {
       clientX: e.clientX,
       gridX,
       gridWidth,
-      colWidth,
-      xInCols,
       xRatio,
       cols
     });
@@ -454,15 +451,15 @@ export default class ReactGridLayout extends React.Component<Props, State> {
 
     log("Thresholds:", {
       standardWidth,
-      xInCols,
+      xRatio,
       sampleX: cols - standardWidth
     });
 
-    if (xInCols < 0.40) {
+    if (xRatio < 0.4) {
       l.w = standardWidth;
       l.x = 0;
       log("Left section");
-    } else if (xInCols > 0.60) {
+    } else if (xRatio > 0.6) {
       // Right section
       l.w = standardWidth;
       l.x = cols - standardWidth;
@@ -472,7 +469,8 @@ export default class ReactGridLayout extends React.Component<Props, State> {
       l.w = cols;
       l.x = 0;
     }
-    if(l.w < l.minW) {
+
+    if (l.w < l.minW) {
       l.w = l.minW;
       l.x = 0;
     }
@@ -502,27 +500,30 @@ export default class ReactGridLayout extends React.Component<Props, State> {
     };
 
     // Set state with updated placeholder before final cleanup
-    this.setState({
-      activeDrag: placeholder
-    }, () => {
-      // After the placeholder is rendered with the correct position and size,
-      // complete the drag operation with the final state update
-      const newLayout = allowOverlap
-        ? layout
-        : compact(layout, compactType(this.props), cols);
+    this.setState(
+      {
+        activeDrag: placeholder
+      },
+      () => {
+        // After the placeholder is rendered with the correct position and size,
+        // complete the drag operation with the final state update
+        const newLayout = allowOverlap
+          ? layout
+          : compact(layout, compactType(this.props), cols);
 
-      this.props.onDragStop(newLayout, oldDragItem, l, placeholder, e, node);
+        this.props.onDragStop(newLayout, oldDragItem, l, placeholder, e, node);
 
-      const { oldLayout } = this.state;
-      this.setState({
-        activeDrag: null,
-        layout: newLayout,
-        oldDragItem: null,
-        oldLayout: null
-      });
+        const { oldLayout } = this.state;
+        this.setState({
+          activeDrag: null,
+          layout: newLayout,
+          oldDragItem: null,
+          oldLayout: null
+        });
 
-      this.onLayoutMaybeChanged(newLayout, oldLayout);
-    });
+        this.onLayoutMaybeChanged(newLayout, oldLayout);
+      }
+    );
   };
 
   onLayoutMaybeChanged(newLayout: Layout, oldLayout: ?Layout) {
